@@ -1,13 +1,13 @@
 import os
 import json
-import shutil
 from pathlib import Path
 
 
 class ConfigManager:
-    """Gère la configuration locale de CitySync."""
+    """Gère la configuration locale de CitySync (%APPDATA%\\CitySync\\config.json)."""
 
-    CONFIG_DIR = Path(os.getenv("APPDATA")) / "CitySync"
+    # %APPDATA% existe sur Windows. Fallback sur le home si absent (dev/tests).
+    CONFIG_DIR = Path(os.getenv("APPDATA") or Path.home()) / "CitySync"
     CONFIG_FILE = CONFIG_DIR / "config.json"
 
     def __init__(self):
@@ -20,8 +20,12 @@ class ConfigManager:
 
     def _load_config(self):
         if self.CONFIG_FILE.exists():
-            with open(self.CONFIG_FILE, 'r', encoding='utf-8') as f:
-                self.config = json.load(f)
+            try:
+                with open(self.CONFIG_FILE, 'r', encoding='utf-8') as f:
+                    self.config = json.load(f)
+            except (json.JSONDecodeError, OSError):
+                # Config corrompue : on repart d'une config vide plutôt que de planter.
+                self.config = {}
 
     def save(self):
         with open(self.CONFIG_FILE, 'w', encoding='utf-8') as f:
@@ -35,5 +39,6 @@ class ConfigManager:
         self.save()
 
     def is_configured(self):
+        """Vrai si les champs indispensables sont renseignés."""
         required = ['player_name', 'save_name', 'github_repo', 'saves_folder']
         return all(self.config.get(k) for k in required)
