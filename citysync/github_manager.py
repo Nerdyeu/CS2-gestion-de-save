@@ -290,10 +290,15 @@ class GitHubManager:
             cutoff = datetime.now(timezone.utc) - timedelta(days=days)
 
             for release in releases:
+                tag = release.get('tagName', '')
+                # On ne purge QUE les sauvegardes (tags "save-..."), jamais une
+                # éventuelle release applicative (ex: "app-latest").
+                if not tag.startswith('save-'):
+                    continue
                 created = _parse_dt(release.get('createdAt'))
                 if created and created < cutoff:
                     self._run(
-                        ['gh', 'release', 'delete', release['tagName'],
+                        ['gh', 'release', 'delete', tag,
                          '-R', self.repo, '--yes', '--cleanup-tag'],
                         timeout=15,
                     )

@@ -1,7 +1,7 @@
 name: Build Windows EXE
 
-# Construit automatiquement CitySync.exe sur une machine Windows GitHub.
-# Resultat telechargeable dans l'onglet "Actions" > le run > "Artifacts".
+# Construit automatiquement CitySync.exe sur une machine Windows GitHub,
+# le publie comme Release telechargeable (tag "app-latest") ET comme artifact.
 on:
   push:
     branches: ["main", "master", "claude/**"]
@@ -9,6 +9,10 @@ on:
       - "**.md"
       - "tests/**"
   workflow_dispatch: {}
+
+# Necessaire pour creer/mettre a jour une Release.
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -37,3 +41,16 @@ jobs:
           name: CitySync-windows
           path: dist/CitySync.exe
           if-no-files-found: error
+
+      - name: Publier en Release telechargeable (app-latest)
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          NOTES="Telecharge CitySync.exe ci-dessous et double-clique dessus. Aucun Python a installer."
+          if gh release view app-latest -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload app-latest dist/CitySync.exe -R "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create app-latest dist/CitySync.exe -R "$GITHUB_REPOSITORY" \
+              --title "CitySync (derniere version)" --notes "$NOTES"
+          fi
