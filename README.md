@@ -13,29 +13,40 @@ Deux amis, une ville, un tour à la fois. Quand tu termines ta session, tu envoi
 - **Compte GitHub** (gratuit, dépôt privé possible)
 - **Python 3.9+** (si compilation depuis le source)
 
-## Installation
+## Lancer sur mon PC (Windows)
 
-### Option 1 : Exécutable (recommandé)
+Tu n'as **rien à installer à la main** : choisis l'option qui te convient.
 
-1. Télécharge `CitySync.exe` depuis les [Releases](https://github.com/nerdyeu/cs2-gestion-de-save/releases)
-2. Double-clique sur le `.exe`
-3. Suis l'assistant de configuration
+### Option A — Le `.exe` tout prêt (zéro Python) ✅ recommandé
 
-### Option 2 : Depuis le source
+1. Va dans l'onglet **Actions** du dépôt GitHub → ouvre le dernier run **« Build Windows EXE »** (pastille verte).
+2. En bas, section **Artifacts**, télécharge **`CitySync-windows`** (un `.zip`).
+3. Dézippe-le → tu obtiens **`CitySync.exe`** → double-clique dessus.
+4. Suis l'assistant de configuration au 1er lancement.
+
+> Le `.exe` est reconstruit automatiquement à chaque mise à jour du code. Pas besoin de Python ni de quoi que ce soit.
+
+### Option B — Double-clic depuis le source
+
+1. Télécharge le projet (bouton vert **Code → Download ZIP**) et dézippe-le.
+2. Double-clique sur **`Lancer-CitySync.bat`**.
+   - S'il manque Python, le script propose de l'installer (via winget) ; relance le `.bat` ensuite.
+   - Il installe les dépendances puis lance l'appli.
+
+### Option C — Fabriquer le `.exe` toi-même
+
+Double-clique sur **`Construire-EXE.bat`** : il installe PyInstaller et génère **`dist\CitySync.exe`**.
+
+> **GitHub CLI (`gh`)** n'a pas besoin d'être installé à l'avance : l'assistant de
+> configuration de l'appli s'en charge (via winget) et te guide pour la connexion.
+> **Git n'est pas requis.**
+
+### Pour les développeurs (depuis le source, à la main)
 
 ```bash
-# 1. Clone le dépôt
-git clone https://github.com/nerdyeu/cs2-gestion-de-save.git
-cd cs2-gestion-de-save
-
-# 2. Crée un virtualenv
 python -m venv venv
 venv\Scripts\activate
-
-# 3. Installe les dépendances
 pip install -r requirements.txt
-
-# 4. Lance l'app
 python main.py
 ```
 

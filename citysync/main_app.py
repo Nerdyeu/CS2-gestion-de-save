@@ -13,6 +13,7 @@ from .config_manager import ConfigManager
 from .github_manager import GitHubManager
 from .cs2_manager import CS2Manager
 from .setup_wizard import SetupWizard
+from .ui_thread import ThreadSafeUIMixin
 
 
 def _fmt_size(num_bytes):
@@ -38,7 +39,7 @@ def _fmt_date(iso_str):
         return iso_str
 
 
-class MainApp(ctk.CTk):
+class MainApp(ThreadSafeUIMixin, ctk.CTk):
     """Fenêtre principale CitySync : 2 boutons (Envoyer / Récupérer)."""
 
     def __init__(self):
@@ -49,6 +50,9 @@ class MainApp(ctk.CTk):
         self.title("CitySync")
         self.geometry("720x640")
         self.resizable(False, False)
+
+        # File d'UI thread-safe (démarrée sur le thread principal).
+        self._init_ui_queue()
 
         self.config_manager = ConfigManager()
         self.github_manager = None
@@ -147,18 +151,20 @@ class MainApp(ctk.CTk):
         self.log("Bienvenue dans CitySync.")
 
     # ----------------------------------------------- helpers thread-safe UI
+    # Toutes ces méthodes sont appelables depuis n'importe quel thread : elles
+    # passent par la file (post) qui exécute sur le thread principal.
     def log(self, message):
-        self.after(0, self._log_impl, message)
+        self.post(lambda: self._log_impl(message))
 
     def _log_impl(self, message):
         self.log_text.insert("end", f"[{datetime.now().strftime('%H:%M:%S')}] {message}\n")
         self.log_text.see("end")
 
     def _set(self, widget, **kwargs):
-        self.after(0, lambda: widget.configure(**kwargs))
+        self.post(lambda: widget.configure(**kwargs))
 
     def _busy(self, on):
-        self.after(0, self._busy_impl, on)
+        self.post(lambda: self._busy_impl(on))
 
     def _busy_impl(self, on):
         if on:
@@ -183,7 +189,7 @@ class MainApp(ctk.CTk):
             result['v'] = messagebox.askyesno(title, message, parent=self)
             ev.set()
 
-        self.after(0, show)
+        self.post(show)
         ev.wait()
         return result.get('v', False)
 

@@ -1,0 +1,39 @@
+name: Build Windows EXE
+
+# Construit automatiquement CitySync.exe sur une machine Windows GitHub.
+# Resultat telechargeable dans l'onglet "Actions" > le run > "Artifacts".
+on:
+  push:
+    branches: ["main", "master", "claude/**"]
+    paths-ignore:
+      - "**.md"
+      - "tests/**"
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Recuperer le code
+        uses: actions/checkout@v4
+
+      - name: Installer Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Installer les dependances
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller==6.1.0
+
+      - name: Construire l'executable
+        run: python build_exe.py
+
+      - name: Publier l'executable (artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: CitySync-windows
+          path: dist/CitySync.exe
+          if-no-files-found: error

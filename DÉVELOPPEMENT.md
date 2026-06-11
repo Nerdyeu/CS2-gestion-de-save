@@ -127,6 +127,29 @@ L'app détecte automatiquement le plus récemment modifié.
 | "No save found" | Mauvais dossier ou nom | Vérifier config, créer une save |
 | "game is running" | Cities2.exe ouvert | Fermer le jeu |
 
+## Tests automatisés (sans écran)
+
+L'UF se teste sous écran virtuel (Linux + Xvfb), ce qui attrape les vrais bugs
+d'interface (API CustomTkinter, mises à jour de widgets depuis des threads…) :
+
+```bash
+# Sur une machine Linux avec Tk + Xvfb
+python3 -m pip install customtkinter==5.2.0 pillow==10.1.0
+xvfb-run -a python3 tests/smoke_ui.py main      # construit la fenetre principale
+xvfb-run -a python3 tests/smoke_ui.py wizard    # parcourt tout l'assistant
+xvfb-run -a python3 tests/smoke_flows.py        # flux Envoyer / Conflit / Recuperer (GitHub simule)
+```
+
+Les appels réseau/`gh`/`winget`/`tasklist` sont remplacés par des doublures :
+ces tests valident l'UI et l'orchestration, pas l'intégration réelle à GitHub
+(à vérifier manuellement sur Windows).
+
+## Build automatique du .exe
+
+Le workflow `.github/workflows/build-windows.yml` compile `CitySync.exe` sur un
+runner Windows à chaque push de code. L'exécutable est récupérable dans
+**Actions > (le run) > Artifacts**.
+
 ## Améliorations futures
 
 - [ ] Interface pour gérer l'historique des releases

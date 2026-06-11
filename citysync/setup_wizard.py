@@ -4,9 +4,10 @@ from threading import Thread
 from .config_manager import ConfigManager
 from .github_manager import GitHubManager
 from .cs2_manager import CS2Manager
+from .ui_thread import ThreadSafeUIMixin
 
 
-class SetupWizard(ctk.CTkToplevel):
+class SetupWizard(ThreadSafeUIMixin, ctk.CTkToplevel):
     """Assistant de configuration initiale (fenêtre fille de l'app principale)."""
 
     def __init__(self, master=None):
@@ -14,6 +15,9 @@ class SetupWizard(ctk.CTkToplevel):
         self.title("CitySync - Configuration initiale")
         self.geometry("520x620")
         self.resizable(False, False)
+
+        # File d'UI thread-safe (démarrée sur le thread principal).
+        self._init_ui_queue()
 
         self.config_manager = ConfigManager()
 
@@ -137,17 +141,17 @@ class SetupWizard(ctk.CTkToplevel):
         def work():
             gh = GitHubManager("")
             if gh.is_gh_installed():
-                self.after(0, lambda: label.configure(text="✓ GitHub CLI est déjà installé"))
+                self.post(lambda: label.configure(text="✓ GitHub CLI est déjà installé"))
                 return
-            self.after(0, lambda: label.configure(
+            self.post(lambda: label.configure(
                 text="GitHub CLI absent. Installation via winget (une console va s'ouvrir)..."))
             ok = gh.install_gh()
             if ok:
-                self.after(0, lambda: status.configure(
+                self.post(lambda: status.configure(
                     text="✓ Installé. IMPORTANT : ferme et relance CitySync\n"
                          "pour que 'gh' soit reconnu.", text_color="orange"))
             else:
-                self.after(0, lambda: status.configure(
+                self.post(lambda: status.configure(
                     text="✗ Échec. Installe manuellement :\nwinget install --id GitHub.cli",
                     text_color="red"))
 
@@ -161,17 +165,21 @@ class SetupWizard(ctk.CTkToplevel):
                              wraplength=420)
         label.pack(pady=20)
 
+        def add_login_button():
+            # Création ET pack du widget sur le thread principal (sûr).
+            btn = ctk.CTkButton(self.content_frame, text="Se connecter à GitHub",
+                                command=lambda: GitHubManager("").auth_login())
+            btn.pack(pady=10)
+
         def work():
             gh = GitHubManager("")
             if gh.is_authenticated():
-                self.after(0, lambda: label.configure(text="✓ Vous êtes déjà connecté à GitHub"))
+                self.post(lambda: label.configure(text="✓ Vous êtes déjà connecté à GitHub"))
             else:
-                self.after(0, lambda: label.configure(
+                self.post(lambda: label.configure(
                     text="Non connecté. Cliquez sur le bouton : une console s'ouvre,\n"
                          "suivez les instructions, puis revenez ici et cliquez 'Suivant'."))
-                btn = ctk.CTkButton(self.content_frame, text="Se connecter à GitHub",
-                                    command=lambda: GitHubManager("").auth_login())
-                self.after(0, lambda: btn.pack(pady=10))
+                self.post(add_login_button)
 
         Thread(target=work, daemon=True).start()
 
@@ -201,17 +209,17 @@ class SetupWizard(ctk.CTkToplevel):
             def work():
                 gh = GitHubManager(repo)
                 if gh.repo_exists():
-                    self.after(0, lambda: info.configure(
+                    self.post(lambda: info.configure(
                         text="✓ Ce dépôt existe déjà et est accessible.", text_color="green"))
                     return
                 ok = gh.create_repo(private=True)
                 if ok:
                     GitHubManager(repo).create_initial_state(
                         self.values.get('player_name', 'Joueur'))
-                    self.after(0, lambda: info.configure(
+                    self.post(lambda: info.configure(
                         text="✓ Dépôt privé créé.", text_color="green"))
                 else:
-                    self.after(0, lambda: info.configure(
+                    self.post(lambda: info.configure(
                         text="✗ Création impossible (déjà pris ? non connecté ?).",
                         text_color="red"))
             Thread(target=work, daemon=True).start()
@@ -291,6 +299,6 @@ class SetupWizard(ctk.CTkToplevel):
             except Exception:
                 msg = "⚠️ Initialisation impossible (réseau ?)."
                 color = "orange"
-            self.after(0, lambda: state_status.configure(text=msg, text_color=color))
+            self.post(lambda: state_status.configure(text=msg, text_color=color))
 
         Thread(target=work, daemon=True).start()
